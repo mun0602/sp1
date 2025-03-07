@@ -212,26 +212,64 @@ show_network_info() {
     fi
 }
 
-# Chạy kiểm tra tổng quan (phiên bản nhẹ)
+# Chạy kiểm tra tổng quan (phiên bản nhẹ với hiển thị bảng)
 run_quick_test() {
     print_header
     check_tools
     
     print_section "KIỂM TRA NHANH"
     
-    # Ping test
-    echo -e "${ARROW} ${BOLD}Độ trễ trung bình:${RESET}"
-    ping -c 3 8.8.8.8 | tail -1
+    echo -e "${BOLD}Đang thu thập thông tin mạng...${RESET}"
     
-    # Tốc độ mạng tóm tắt
-    echo -e "${ARROW} ${BOLD}Tốc độ mạng tóm tắt:${RESET}"
-    speedtest-cli --simple
+    # Thu thập thông tin
+    ping_result=$(ping -c 3 8.8.8.8 2>&1)
+    avg_latency=$(echo "$ping_result" | tail -1 | awk -F '/' '{print $5}')
+    latency_float=$(echo "$avg_latency" | awk '{print int($1)}')
     
-    # Thông tin IP
-    echo -e "${ARROW} ${BOLD}Địa chỉ IP công cộng:${RESET} $(curl -s ifconfig.me)"
+    # Lấy kết quả speedtest
+    echo -e "${ARROW} Đang chạy kiểm tra tốc độ..."
+    speedtest_output=$(speedtest-cli --simple 2>&1)
+    ping=$(echo "$speedtest_output" | grep "Ping:" | awk '{print $2}')
+    download=$(echo "$speedtest_output" | grep "Download:" | awk '{print $2}')
+    upload=$(echo "$speedtest_output" | grep "Upload:" | awk '{print $2}')
+    
+    # Lấy IP công cộng
+    public_ip=$(curl -s ifconfig.me)
+    
+    # Đánh giá tốc độ
+    download_float=$(echo "$download" | awk '{print int($1)}')
+    if [ $download_float -gt 100 ]; then
+        quality="${GREEN}Rất tốt${RESET}"
+    elif [ $download_float -gt 50 ]; then
+        quality="${GREEN}Tốt${RESET}"
+    elif [ $download_float -gt 25 ]; then
+        quality="${YELLOW}Trung bình${RESET}"
+    elif [ $download_float -gt 10 ]; then
+        quality="${YELLOW}Thấp${RESET}"
+    else
+        quality="${RED}Rất thấp${RESET}"
+    fi
+    
+    # Hiển thị bảng kết quả
+    echo ""
+    echo -e "${BLUE}┌───────────────────────────────────────────────────────┐${RESET}"
+    echo -e "${BLUE}│${BOLD}                   KẾT QUẢ KIỂM TRA NHANH                ${BLUE}│${RESET}"
+    echo -e "${BLUE}├───────────────────────────┬───────────────────────────┤${RESET}"
+    echo -e "${BLUE}│${RESET} ${BOLD}Độ trễ (ping)${RESET}           ${BLUE}│${RESET} ${YELLOW}$avg_latency ms${RESET}                  ${BLUE}│${RESET}"
+    echo -e "${BLUE}├───────────────────────────┼───────────────────────────┤${RESET}"
+    echo -e "${BLUE}│${RESET} ${BOLD}Tốc độ Tải xuống${RESET}        ${BLUE}│${RESET} ${GREEN}$download Mbit/s${RESET}              ${BLUE}│${RESET}"
+    echo -e "${BLUE}├───────────────────────────┼───────────────────────────┤${RESET}"
+    echo -e "${BLUE}│${RESET} ${BOLD}Tốc độ Tải lên${RESET}          ${BLUE}│${RESET} ${GREEN}$upload Mbit/s${RESET}                ${BLUE}│${RESET}"
+    echo -e "${BLUE}├───────────────────────────┼───────────────────────────┤${RESET}"
+    echo -e "${BLUE}│${RESET} ${BOLD}Địa chỉ IP công cộng${RESET}    ${BLUE}│${RESET} ${YELLOW}$public_ip${RESET}                ${BLUE}│${RESET}"
+    echo -e "${BLUE}├───────────────────────────┼───────────────────────────┤${RESET}"
+    echo -e "${BLUE}│${RESET} ${BOLD}Đánh giá chất lượng${RESET}     ${BLUE}│${RESET} $quality                   ${BLUE}│${RESET}"
+    echo -e "${BLUE}└───────────────────────────┴───────────────────────────┘${RESET}"
+    
+    echo ""
+    echo -e "${ARROW} ${BOLD}Thời gian kiểm tra:${RESET} $(date)"
     
     print_section "KIỂM TRA NHANH HOÀN TẤT"
-    echo -e "${ARROW} ${BOLD}Thời gian:${RESET} $(date)"
 }
 
 # Chạy tất cả các kiểm tra (rút gọn)
