@@ -1,36 +1,27 @@
 #!/bin/bash
 
-# Script kiểm tra tốc độ mạng cho Ubuntu với giao diện đẹp mắt
+# Script kiểm tra tốc độ mạng cho Ubuntu - Phiên bản nhẹ
 # Tạo bởi Claude
 
-# Màu sắc
+# Màu sắc (giới hạn số lượng màu để giảm tài nguyên)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+YELLOW='\033[0;33m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
-# Các biểu tượng
-CHECK_MARK="${GREEN}✓${RESET}"
-CROSS_MARK="${RED}✗${RESET}"
-ARROW="${YELLOW}➜${RESET}"
-ROCKET="${CYAN}🚀${RESET}"
-GLOBE="${BLUE}🌐${RESET}"
-CLOCK="${YELLOW}⏱${RESET}"
-INFO="${BLUE}ℹ${RESET}"
+# Biểu tượng đơn giản
+CHECK="${GREEN}✓${RESET}"
+CROSS="${RED}✗${RESET}"
+ARROW="${YELLOW}→${RESET}"
 
-# Hàm in tiêu đề
+# Hàm in tiêu đề chính
 print_header() {
     clear
-    echo -e "${BLUE}╔═════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${BLUE}║                                                             ║${RESET}"
-    echo -e "${BLUE}║${YELLOW}                  KIỂM TRA TỐC ĐỘ MẠNG UBUNTU                ${BLUE}║${RESET}"
-    echo -e "${BLUE}║                                                             ║${RESET}"
-    echo -e "${BLUE}╚═════════════════════════════════════════════════════════════╝${RESET}"
+    echo -e "${BLUE}=======================================================${RESET}"
+    echo -e "${BLUE}           KIỂM TRA TỐC ĐỘ MẠNG UBUNTU${RESET}"
+    echo -e "${BLUE}=======================================================${RESET}"
     echo ""
 }
 
@@ -38,259 +29,212 @@ print_header() {
 print_section() {
     local title="$1"
     echo ""
-    echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "${MAGENTA}│${WHITE} ${BOLD}$title${RESET}${MAGENTA}                                                   │${RESET}"
-    echo -e "${MAGENTA}└─────────────────────────────────────────────────────────────┘${RESET}"
+    echo -e "${YELLOW}-------------------------------------------------------${RESET}"
+    echo -e "${BOLD}$title${RESET}"
+    echo -e "${YELLOW}-------------------------------------------------------${RESET}"
     echo ""
 }
 
-# Hàm hiển thị thanh tiến trình
-progress_bar() {
-    local duration=$1
-    local steps=20
-    local step_duration=$(echo "scale=2; $duration/$steps" | bc)
-    
-    echo -ne "${YELLOW}[${RESET}"
-    for ((i=0; i<steps; i++)); do
-        echo -ne "${CYAN}░${RESET}"
-    done
-    echo -ne "${YELLOW}]${RESET} ${MAGENTA}0%${RESET}"
-    
-    for ((i=0; i<steps; i++)); do
-        sleep $step_duration
-        echo -ne "\r${YELLOW}[${RESET}"
-        for ((j=0; j<=i; j++)); do
-            echo -ne "${GREEN}█${RESET}"
-        done
-        for ((j=i+1; j<steps; j++)); do
-            echo -ne "${CYAN}░${RESET}"
-        done
-        local percentage=$((100*(i+1)/steps))
-        echo -ne "${YELLOW}]${RESET} ${MAGENTA}$percentage%${RESET}"
-    done
-    echo ""
-}
-
-# Hàm kiểm tra các công cụ cần thiết
+# Kiểm tra công cụ cần thiết (giảm thiểu output không cần thiết)
 check_tools() {
-    print_section "KIỂM TRA CÔNG CỤ CẦN THIẾT"
+    print_section "KIỂM TRA CÔNG CỤ"
     
     local missing_tools=()
     
-    echo -ne "${ARROW} Đang kiểm tra speedtest-cli... "
+    echo -ne "${ARROW} Kiểm tra speedtest-cli... "
     if ! command -v speedtest-cli &> /dev/null; then
-        echo -e "${CROSS_MARK} Chưa cài đặt"
+        echo -e "${CROSS} Chưa cài đặt"
         missing_tools+=("speedtest-cli")
     else
-        echo -e "${CHECK_MARK} Đã cài đặt"
+        echo -e "${CHECK} Đã cài đặt"
     fi
     
-    echo -ne "${ARROW} Đang kiểm tra curl... "
+    echo -ne "${ARROW} Kiểm tra curl... "
     if ! command -v curl &> /dev/null; then
-        echo -e "${CROSS_MARK} Chưa cài đặt"
+        echo -e "${CROSS} Chưa cài đặt"
         missing_tools+=("curl")
     else
-        echo -e "${CHECK_MARK} Đã cài đặt"
+        echo -e "${CHECK} Đã cài đặt"
     fi
     
     if [ ${#missing_tools[@]} -ne 0 ]; then
         echo ""
-        echo -e "${INFO} Các công cụ sau chưa được cài đặt: ${YELLOW}${missing_tools[*]}${RESET}"
-        echo -e "${INFO} Đang cài đặt các công cụ cần thiết..."
+        echo -e "${ARROW} Cài đặt các công cụ còn thiếu: ${YELLOW}${missing_tools[*]}${RESET}"
         
-        sudo apt update
+        sudo apt update -qq
         for tool in "${missing_tools[@]}"; do
-            echo -ne "${ARROW} Đang cài đặt ${YELLOW}$tool${RESET}... "
+            echo -ne "${ARROW} Đang cài ${YELLOW}$tool${RESET}... "
             sudo apt install -y "$tool" > /dev/null 2>&1
             if [ $? -eq 0 ]; then
-                echo -e "${CHECK_MARK} Đã cài đặt thành công"
+                echo -e "${CHECK} Xong"
             else
-                echo -e "${CROSS_MARK} Cài đặt thất bại"
+                echo -e "${CROSS} Lỗi"
                 exit 1
             fi
         done
-        
-        echo -e "${INFO} Đã cài đặt tất cả các công cụ cần thiết."
     fi
 }
 
-# Kiểm tra kết nối cơ bản
+# Kiểm tra kết nối cơ bản (rút gọn)
 check_basic_connection() {
     print_section "KIỂM TRA KẾT NỐI CƠ BẢN"
     
     # Kiểm tra ping tới Google DNS
-    echo -e "${ARROW} ${BOLD}Đang kiểm tra ping tới 8.8.8.8...${RESET}"
-    echo ""
+    echo -e "${ARROW} ${BOLD}Ping tới 8.8.8.8:${RESET}"
     
     ping_output=$(ping -c 4 8.8.8.8 2>&1)
     if [ $? -eq 0 ]; then
-        echo -e "$ping_output" | grep -E "icmp_seq|rtt" | 
-            sed -e "s/64 bytes from/  ${CHECK_MARK} Phản hồi từ/" \
-                -e "s/time=/thời gian=/" \
-                -e "s/icmp_seq=/gói #/" \
-                -e "s/ttl=/ttl=/"
+        # Chỉ hiển thị dòng tổng kết
+        avg_ping=$(echo "$ping_output" | tail -1)
+        echo -e "  $avg_ping" | sed -e "s/rtt/Độ trễ/" -e "s/min/tối thiểu/" -e "s/avg/trung bình/" -e "s/max/tối đa/" -e "s/mdev/độ lệch/"
         
-        # Kiểm tra độ trễ (latency) trung bình
+        # Lấy độ trễ trung bình
         avg_latency=$(echo "$ping_output" | tail -1 | awk -F '/' '{print $5}')
-        echo ""
-        echo -e "${INFO} ${BOLD}Độ trễ trung bình:${RESET} ${YELLOW}${avg_latency} ms${RESET}"
-        
-        # Đánh giá độ trễ
         latency_float=$(echo "$avg_latency" | awk '{print int($1)}')
+        
+        # Đánh giá đơn giản
+        echo -ne "${ARROW} Đánh giá: "
         if [ $latency_float -lt 50 ]; then
-            echo -e "${INFO} Đánh giá: ${GREEN}Rất tốt${RESET} ${ROCKET}"
+            echo -e "${GREEN}Rất tốt${RESET}"
         elif [ $latency_float -lt 100 ]; then
-            echo -e "${INFO} Đánh giá: ${CYAN}Tốt${RESET} ${CHECK_MARK}"
+            echo -e "${GREEN}Tốt${RESET}"
         elif [ $latency_float -lt 150 ]; then
-            echo -e "${INFO} Đánh giá: ${YELLOW}Trung bình${RESET}"
+            echo -e "${YELLOW}Trung bình${RESET}"
         else
-            echo -e "${INFO} Đánh giá: ${RED}Kém${RESET}"
+            echo -e "${RED}Kém${RESET}"
         fi
     else
-        echo -e "${CROSS_MARK} ${RED}Không thể ping đến 8.8.8.8${RESET}"
+        echo -e "${CROSS} ${RED}Không thể ping đến 8.8.8.8${RESET}"
     fi
     
-    # Kiểm tra DNS
+    # Kiểm tra DNS (rút gọn)
     echo ""
-    echo -e "${ARROW} ${BOLD}Đang kiểm tra phân giải DNS...${RESET}"
-    dns_result=$(dig google.com +short 2>&1)
+    echo -e "${ARROW} ${BOLD}Phân giải DNS:${RESET}"
+    dns_result=$(dig google.com +short 2>&1 | head -1)
     if [ $? -eq 0 ] && [ ! -z "$dns_result" ]; then
-        echo -e "${CHECK_MARK} Phân giải DNS thành công:"
-        echo -e "  ${YELLOW}google.com${RESET} → ${CYAN}$dns_result${RESET}"
+        echo -e "  google.com → $dns_result"
     else
-        echo -e "${CROSS_MARK} ${RED}Không thể phân giải DNS${RESET}"
+        echo -e "${CROSS} ${RED}Không thể phân giải DNS${RESET}"
     fi
 }
 
-# Kiểm tra tốc độ sử dụng speedtest-cli
+# Kiểm tra tốc độ mạng (tối ưu hóa)
 run_speedtest() {
-    print_section "KIỂM TRA TỐC ĐỘ MẠNG CHI TIẾT"
+    print_section "KIỂM TRA TỐC ĐỘ MẠNG"
     
-    echo -e "${INFO} ${BOLD}Đang chạy speedtest-cli (có thể mất vài phút)...${RESET}"
-    echo -e "${CLOCK} Đang kết nối tới máy chủ kiểm tra..."
+    echo -e "${ARROW} ${BOLD}Đang chạy speedtest (có thể mất vài phút)...${RESET}"
+    echo ""
     
-    # Hiển thị thanh tiến trình
-    progress_bar 3
-    
-    # Chạy speedtest với output đơn giản
+    # Chỉ chạy phiên bản đơn giản
     speedtest_output=$(speedtest-cli --simple 2>&1)
     if [ $? -eq 0 ]; then
         ping=$(echo "$speedtest_output" | grep "Ping:" | awk '{print $2}')
         download=$(echo "$speedtest_output" | grep "Download:" | awk '{print $2}')
         upload=$(echo "$speedtest_output" | grep "Upload:" | awk '{print $2}')
         
-        echo ""
-        echo -e "${GLOBE} ${BOLD}Kết quả kiểm tra tốc độ:${RESET}"
-        echo -e "  ${YELLOW}┌───────────────────────────────────────┐${RESET}"
-        echo -e "  ${YELLOW}│${RESET} ${BOLD}Ping:${RESET}      ${CYAN}$ping ms${RESET}                     ${YELLOW}│${RESET}"
-        echo -e "  ${YELLOW}│${RESET} ${BOLD}Tải xuống:${RESET} ${GREEN}$download Mbit/s${RESET}                ${YELLOW}│${RESET}"
-        echo -e "  ${YELLOW}│${RESET} ${BOLD}Tải lên:${RESET}   ${MAGENTA}$upload Mbit/s${RESET}                  ${YELLOW}│${RESET}"
-        echo -e "  ${YELLOW}└───────────────────────────────────────┘${RESET}"
+        echo -e "${BOLD}Kết quả:${RESET}"
+        echo -e "  Ping:      ${YELLOW}$ping ms${RESET}"
+        echo -e "  Tải xuống: ${GREEN}$download Mbit/s${RESET}"
+        echo -e "  Tải lên:   ${GREEN}$upload Mbit/s${RESET}"
         
-        # Đánh giá tốc độ
+        # Đánh giá đơn giản
         download_float=$(echo "$download" | awk '{print int($1)}')
         echo ""
-        echo -e "${INFO} ${BOLD}Đánh giá tốc độ tải xuống:${RESET}"
+        echo -ne "${ARROW} Đánh giá tốc độ: "
         if [ $download_float -gt 100 ]; then
-            echo -e "  ${GREEN}Rất tốt${RESET} ${ROCKET} - Phù hợp cho streaming 4K, tải file lớn và gaming"
+            echo -e "${GREEN}Rất tốt${RESET}"
         elif [ $download_float -gt 50 ]; then
-            echo -e "  ${CYAN}Tốt${RESET} ${CHECK_MARK} - Phù hợp cho streaming HD, hội nghị video và tải file"
+            echo -e "${GREEN}Tốt${RESET}"
         elif [ $download_float -gt 25 ]; then
-            echo -e "  ${YELLOW}Trung bình${RESET} - Đủ cho streaming video HD và duyệt web cơ bản"
+            echo -e "${YELLOW}Trung bình${RESET}"
         elif [ $download_float -gt 10 ]; then
-            echo -e "  ${RED}Thấp${RESET} - Phù hợp cho duyệt web cơ bản và email"
+            echo -e "${YELLOW}Thấp${RESET}"
         else
-            echo -e "  ${RED}Rất thấp${RESET} ${CROSS_MARK} - Có thể gặp khó khăn khi duyệt web"
+            echo -e "${RED}Rất thấp${RESET}"
         fi
     else
-        echo -e "${CROSS_MARK} ${RED}Không thể chạy speedtest-cli${RESET}"
+        echo -e "${CROSS} ${RED}Không thể chạy speedtest-cli${RESET}"
     fi
-    
-    echo ""
-    echo -e "${INFO} ${BOLD}Đang chạy kiểm tra chi tiết hơn...${RESET}"
-    speedtest-cli
 }
 
-# Kiểm tra tốc độ tải file từ các server khác nhau
+# Kiểm tra tốc độ tải file (chỉ chạy 1 server)
 test_download_speed() {
     print_section "KIỂM TRA TỐC ĐỘ TẢI FILE"
     
-    # Danh sách URL để kiểm tra
-    urls=(
-        "http://speedtest.ftp.otenet.gr/files/test10Mb.db"
-        "http://speedtest.tele2.net/10MB.zip"
-        "http://ipv4.download.thinkbroadband.com/5MB.zip"
-    )
+    # Chỉ chọn 1 URL để giảm tài nguyên
+    url="http://speedtest.tele2.net/10MB.zip"
     
-    for url in "${urls[@]}"; do
-        echo -e "${ARROW} ${BOLD}Đang kiểm tra tốc độ tải từ:${RESET} ${YELLOW}$url${RESET}"
-        echo -e "${CLOCK} Đang tải..."
+    echo -e "${ARROW} ${BOLD}Tải file kiểm tra từ:${RESET} $url"
+    echo -e "${ARROW} Đang tải..."
+    
+    result=$(curl -L -o /dev/null -w "%{speed_download} %{time_total}" "$url" 2>/dev/null)
+    if [ $? -eq 0 ]; then
+        speed=$(echo $result | awk '{print $1}')
+        time=$(echo $result | awk '{print $2}')
         
-        # Hiển thị thanh tiến trình
-        progress_bar 2
+        # Chuyển đổi tốc độ từ byte/s sang MB/s
+        speed_mb=$(echo "scale=2; $speed/1024/1024" | bc)
         
-        result=$(curl -L -o /dev/null -w "%{speed_download} %{time_total}" "$url" 2>/dev/null)
-        if [ $? -eq 0 ]; then
-            speed=$(echo $result | awk '{print $1}')
-            time=$(echo $result | awk '{print $2}')
-            
-            # Chuyển đổi tốc độ từ byte/s sang MB/s
-            speed_mb=$(echo "scale=2; $speed/1024/1024" | bc)
-            
-            echo -e "${CHECK_MARK} ${BOLD}Kết quả:${RESET}"
-            echo -e "  ${YELLOW}┌─────────────────────────────────────┐${RESET}"
-            echo -e "  ${YELLOW}│${RESET} ${BOLD}Tốc độ tải:${RESET} ${GREEN}$speed_mb MB/s${RESET}             ${YELLOW}│${RESET}"
-            echo -e "  ${YELLOW}│${RESET} ${BOLD}Thời gian:${RESET}  ${CYAN}$time giây${RESET}                 ${YELLOW}│${RESET}"
-            echo -e "  ${YELLOW}└─────────────────────────────────────┘${RESET}"
-        else
-            echo -e "${CROSS_MARK} ${RED}Không thể tải từ server này${RESET}"
-        fi
-        echo ""
-    done
+        echo -e "${CHECK} ${BOLD}Kết quả:${RESET}"
+        echo -e "  Tốc độ tải: ${GREEN}$speed_mb MB/s${RESET}"
+        echo -e "  Thời gian:  ${YELLOW}$time giây${RESET}"
+    else
+        echo -e "${CROSS} ${RED}Không thể tải từ server này${RESET}"
+    fi
 }
 
-# Hiển thị thông tin mạng
+# Hiển thị thông tin mạng (đơn giản hóa)
 show_network_info() {
     print_section "THÔNG TIN MẠNG"
     
-    echo -e "${ARROW} ${BOLD}Thông tin giao diện mạng:${RESET}"
-    echo ""
+    echo -e "${ARROW} ${BOLD}Giao diện mạng:${RESET}"
     
-    ip -brief addr show | while read line; do
+    # Chỉ hiển thị các giao diện UP
+    ip -brief addr show | grep -v DOWN | while read line; do
         interface=$(echo $line | awk '{print $1}')
         status=$(echo $line | awk '{print $2}')
         ip_addr=$(echo $line | awk '{print $3}')
         
-        if [ "$status" == "UP" ]; then
-            status_colored="${GREEN}UP${RESET}"
-        else
-            status_colored="${RED}DOWN${RESET}"
-        fi
-        
-        echo -e "  ${CYAN}$interface${RESET}: $status_colored - ${YELLOW}$ip_addr${RESET}"
+        echo -e "  ${GREEN}$interface${RESET}: $ip_addr"
     done
     
     echo ""
-    echo -e "${ARROW} ${BOLD}Thông tin bảng định tuyến:${RESET}"
-    echo ""
-    
-    ip route | while read line; do
-        echo -e "  ${MAGENTA}➜${RESET} $line"
-    done
+    echo -e "${ARROW} ${BOLD}Gateway mặc định:${RESET}"
+    ip route | grep default | head -1
     
     echo ""
     echo -e "${ARROW} ${BOLD}Địa chỉ IP công cộng:${RESET}"
     public_ip=$(curl -s ifconfig.me)
     if [ ! -z "$public_ip" ]; then
-        echo -e "  ${YELLOW}┌─────────────────────────────────────┐${RESET}"
-        echo -e "  ${YELLOW}│${RESET} ${CYAN}$public_ip${RESET}                      ${YELLOW}│${RESET}"
-        echo -e "  ${YELLOW}└─────────────────────────────────────┘${RESET}"
+        echo -e "  ${YELLOW}$public_ip${RESET}"
     else
-        echo -e "${CROSS_MARK} ${RED}Không thể lấy địa chỉ IP công cộng${RESET}"
+        echo -e "${CROSS} ${RED}Không thể lấy địa chỉ IP công cộng${RESET}"
     fi
 }
 
-# Chạy tất cả các kiểm tra
+# Chạy kiểm tra tổng quan (phiên bản nhẹ)
+run_quick_test() {
+    print_header
+    check_tools
+    
+    print_section "KIỂM TRA NHANH"
+    
+    # Ping test
+    echo -e "${ARROW} ${BOLD}Độ trễ trung bình:${RESET}"
+    ping -c 3 8.8.8.8 | tail -1
+    
+    # Tốc độ mạng tóm tắt
+    echo -e "${ARROW} ${BOLD}Tốc độ mạng tóm tắt:${RESET}"
+    speedtest-cli --simple
+    
+    # Thông tin IP
+    echo -e "${ARROW} ${BOLD}Địa chỉ IP công cộng:${RESET} $(curl -s ifconfig.me)"
+    
+    print_section "KIỂM TRA NHANH HOÀN TẤT"
+    echo -e "${ARROW} ${BOLD}Thời gian:${RESET} $(date)"
+}
+
+# Chạy tất cả các kiểm tra (rút gọn)
 run_all_tests() {
     print_header
     check_tools
@@ -300,30 +244,25 @@ run_all_tests() {
     run_speedtest
     
     print_section "KẾT QUẢ KIỂM TRA HOÀN TẤT"
-    echo -e "${INFO} ${BOLD}Thời gian kiểm tra:${RESET} ${YELLOW}$(date)${RESET}"
-    echo ""
-    echo -e "${GREEN}╔═════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${GREEN}║                                                             ║${RESET}"
-    echo -e "${GREEN}║${WHITE}            CẢM ƠN BẠN ĐÃ SỬ DỤNG CÔNG CỤ KIỂM TRA            ${GREEN}║${RESET}"
-    echo -e "${GREEN}║                                                             ║${RESET}"
-    echo -e "${GREEN}╚═════════════════════════════════════════════════════════════╝${RESET}"
+    echo -e "${ARROW} ${BOLD}Thời gian:${RESET} $(date)"
 }
 
-# Hàm hiển thị menu
+# Hàm hiển thị menu (đơn giản hóa)
 show_menu() {
     print_header
-    echo -e "${BLUE}┌─────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "${BLUE}│${RESET} ${BOLD}MENU KIỂM TRA TỐC ĐỘ MẠNG${RESET}                                    ${BLUE}│${RESET}"
-    echo -e "${BLUE}├─────────────────────────────────────────────────────────────┤${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}1.${RESET} Chạy tất cả các kiểm tra                                ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}2.${RESET} Kiểm tra thông tin mạng                                 ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}3.${RESET} Kiểm tra kết nối cơ bản                                 ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}4.${RESET} Kiểm tra tốc độ tải file                                ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}5.${RESET} Chạy speedtest-cli                                       ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET} ${CYAN}0.${RESET} Thoát                                                   ${BLUE}│${RESET}"
-    echo -e "${BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+    echo -e "${BLUE}-------------------------------------------------------${RESET}"
+    echo -e "${BOLD}MENU KIỂM TRA TỐC ĐỘ MẠNG${RESET}"
+    echo -e "${BLUE}-------------------------------------------------------${RESET}"
+    echo -e " ${YELLOW}1.${RESET} Kiểm tra nhanh (ít tài nguyên nhất)"
+    echo -e " ${YELLOW}2.${RESET} Chạy tất cả các kiểm tra"
+    echo -e " ${YELLOW}3.${RESET} Kiểm tra thông tin mạng"
+    echo -e " ${YELLOW}4.${RESET} Kiểm tra kết nối cơ bản"
+    echo -e " ${YELLOW}5.${RESET} Kiểm tra tốc độ tải file"
+    echo -e " ${YELLOW}6.${RESET} Chạy speedtest-cli"
+    echo -e " ${YELLOW}0.${RESET} Thoát"
+    echo -e "${BLUE}-------------------------------------------------------${RESET}"
     echo ""
-    echo -ne "${ARROW} ${BOLD}Vui lòng chọn một tùy chọn (0-5):${RESET} "
+    echo -ne "${ARROW} ${BOLD}Chọn tùy chọn (0-6):${RESET} "
 }
 
 # Xử lý lựa chọn menu
@@ -332,18 +271,17 @@ handle_menu() {
     read choice
     
     case $choice in
-        1) run_all_tests ;;
-        2) check_tools && show_network_info ;;
-        3) check_tools && check_basic_connection ;;
-        4) check_tools && test_download_speed ;;
-        5) check_tools && run_speedtest ;;
+        1) run_quick_test ;;
+        2) run_all_tests ;;
+        3) check_tools && show_network_info ;;
+        4) check_tools && check_basic_connection ;;
+        5) check_tools && test_download_speed ;;
+        6) check_tools && run_speedtest ;;
         0) 
            clear
-           echo -e "${GREEN}╔═════════════════════════════════════════════════════════════╗${RESET}"
-           echo -e "${GREEN}║                                                             ║${RESET}"
-           echo -e "${GREEN}║${WHITE}                          TẠM BIỆT!                           ${GREEN}║${RESET}"
-           echo -e "${GREEN}║                                                             ║${RESET}"
-           echo -e "${GREEN}╚═════════════════════════════════════════════════════════════╝${RESET}"
+           echo -e "${GREEN}=======================================================${RESET}"
+           echo -e "${GREEN}                      TẠM BIỆT!                        ${RESET}"
+           echo -e "${GREEN}=======================================================${RESET}"
            exit 0 
            ;;
         *) 
@@ -352,7 +290,7 @@ handle_menu() {
     esac
     
     echo ""
-    echo -ne "${ARROW} ${BOLD}Nhấn Enter để tiếp tục...${RESET} "
+    echo -ne "${ARROW} Nhấn Enter để tiếp tục... "
     read
 }
 
